@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::create([
-            'name' => 'Clinic Admin',
+            'name' => 'Clinic Doctor',
             'email' => 'doctor@clinic.com',
             'password' => Hash::make('password123'),
             'role' => 'doctor',

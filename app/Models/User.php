@@ -46,4 +46,25 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function doctor_information()
+    {
+        return $this->hasOne(Doctor::class, 'user_id'); // or whatever your foreign key is
+    }
+    public function schedules()
+    {
+        return $this->hasManyThrough(
+            DoctorSchedules::class, // final model
+            Doctor::class,          // intermediate model
+            'user_id',              // FK on doctor_information
+            'doctor_id',            // FK on doctor_schedules
+            'id',                   // PK on users
+            'id'                    // PK on doctor_information
+        );
+    }
+
+    // Optional: Add a scope for doctors only
+    public function scopeDoctors($query)
+    {
+        return $query->where('role', 'doctor');
+    }
 }

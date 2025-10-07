@@ -2,6 +2,30 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
+    <!-- Display Success/Error Messages -->
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <strong>Please fix the following errors:</strong>
+            <ul class="mt-2 list-disc list-inside">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <!-- Progress Indicator -->
     <div class="mb-8 flex items-center justify-center">
         <div class="flex items-center w-full max-w-md">
@@ -139,7 +163,7 @@
                     class="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-400 transition-colors">
                     Back: Personal Info
                 </button>
-                <button type="submit"
+                <button type="submit" id="submitBtn"
                     class="px-6 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors">
                     Create Doctor Account
                 </button>
@@ -150,13 +174,18 @@
 
 <script>
 const specializations = [
-    'Anesthesiology', 'Cardiology', 'Dermatology', 'Emergency Medicine', 'Endocrinology',
-    'Family Medicine', 'Gastroenterology', 'General Surgery', 'Geriatrics', 'Hematology',
-    'Infectious Disease', 'Internal Medicine', 'Nephrology', 'Neurology', 'Neurosurgery',
-    'Obstetrics and Gynecology', 'Oncology', 'Ophthalmology', 'Orthopedics', 'Otolaryngology',
-    'Pathology', 'Pediatrics', 'Physical Medicine', 'Plastic Surgery', 'Psychiatry',
-    'Pulmonology', 'Radiology', 'Rheumatology', 'Urology', 'Vascular Surgery'
+  'General Medicine / Family Medicine',
+  'Pediatrics (Child Care)',
+  'Obstetrics & Gynecology (Women’s Health)',
+  'Internal Medicine',
+  'Dermatology (Skin)',
+  'Ophthalmology (Eye)',
+  'ENT / Otolaryngology (Ear, Nose, Throat)',
+  'Cardiology (Heart)',
+  'Orthopedics (Bones & Joints)',
+  'Psychiatry / Mental Health'
 ];
+
 
 const elements = {
     step1: document.getElementById('step1'),
@@ -167,7 +196,9 @@ const elements = {
     specializationInput: document.getElementById('specializationInput'),
     suggestions: document.getElementById('specializationSuggestions'),
     tags: document.getElementById('specializationTags'),
-    hiddenInputs: document.getElementById('specializationHiddenInputs')
+    hiddenInputs: document.getElementById('specializationHiddenInputs'),
+    form: document.getElementById('doctorWizardForm'),
+    submitBtn: document.getElementById('submitBtn')
 };
 
 let selectedSpecializations = @json(old('specializations', []));
@@ -175,21 +206,40 @@ let selectedSpecializations = @json(old('specializations', []));
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     if (selectedSpecializations.length) renderTags();
+    
     @if($errors->any())
-        const step2Fields = ['email', 'password'];
-        if (@json($errors->keys()).some(e => step2Fields.some(f => e.includes(f)))) {
+        const step2Fields = ['email', 'password', 'name'];
+        const errorKeys = @json($errors->keys());
+        if (errorKeys.some(e => step2Fields.some(f => e.includes(f)))) {
             goToStep(2);
         }
     @endif
 });
 
 // Step navigation
-document.getElementById('nextToStep2').onclick = () => validateStep1() && goToStep(2);
-document.getElementById('backToStep1').onclick = () => goToStep(1);
+document.getElementById('nextToStep2').addEventListener('click', function() {
+    if (validateStep1()) {
+        goToStep(2);
+    }
+});
+
+document.getElementById('backToStep1').addEventListener('click', function() {
+    goToStep(1);
+});
+
+// Form submission handler
+elements.form.addEventListener('submit', function(e) {
+    console.log('Form submitted'); // Debug log
+    elements.submitBtn.disabled = true;
+    elements.submitBtn.textContent = 'Creating Account...';
+});
 
 function goToStep(step) {
     elements.step1.classList.toggle('hidden', step !== 1);
     elements.step2.classList.toggle('hidden', step !== 2);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     
     if (step === 1) {
         elements.step1Indicator.className = 'w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium';
@@ -206,48 +256,74 @@ function goToStep(step) {
 
 function validateStep1() {
     const required = ['first_name', 'last_name', 'phone', 'license_number', 'street_address', 'city', 'state', 'postal_code', 'country'];
+    let isValid = true;
+    let firstInvalidField = null;
+
     for (const field of required) {
         const input = document.querySelector(`[name="${field}"]`);
         if (!input.value.trim()) {
-            input.focus();
             input.classList.add('border-red-500');
-            setTimeout(() => input.classList.remove('border-red-500'), 3000);
-            return false;
+            isValid = false;
+            if (!firstInvalidField) firstInvalidField = input;
+        } else {
+            input.classList.remove('border-red-500');
         }
     }
-    return true;
+
+    if (!isValid && firstInvalidField) {
+        firstInvalidField.focus();
+        alert('Please fill in all required fields in Step 1');
+    }
+
+    return isValid;
 }
 
 // Specialization functionality
-elements.specializationInput.oninput = function() {
+elements.specializationInput.addEventListener('input', function() {
     const query = this.value.toLowerCase();
-    if (!query) return elements.suggestions.classList.add('hidden');
+    if (!query) {
+        elements.suggestions.classList.add('hidden');
+        return;
+    }
     
-    const filtered = specializations.filter(s => s.toLowerCase().includes(query) && !selectedSpecializations.includes(s));
-    elements.suggestions.innerHTML = filtered.length ? 
-        filtered.map(s => `<div class="p-3 cursor-pointer hover:bg-gray-50 border-b" data-spec="${s}">${s}</div>`).join('') :
-        `<div class="p-3 text-gray-500">Press Enter to add "${this.value}"</div>`;
+    const filtered = specializations.filter(s => 
+        s.toLowerCase().includes(query) && !selectedSpecializations.includes(s)
+    );
+    
+    if (filtered.length) {
+        elements.suggestions.innerHTML = filtered.map(s => 
+            `<div class="p-3 cursor-pointer hover:bg-gray-50 border-b" data-spec="${s}">${s}</div>`
+        ).join('');
+    } else {
+        elements.suggestions.innerHTML = `<div class="p-3 text-gray-500">Press Enter to add "${this.value}"</div>`;
+    }
+    
     elements.suggestions.classList.remove('hidden');
-};
+});
 
-elements.specializationInput.onkeydown = e => {
+elements.specializationInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         const value = e.target.value.trim();
-        if (value && !selectedSpecializations.includes(value)) addSpecialization(value);
+        if (value && !selectedSpecializations.includes(value)) {
+            addSpecialization(value);
+        }
     }
-};
+});
 
-elements.suggestions.onclick = e => {
+elements.suggestions.addEventListener('click', function(e) {
     const spec = e.target.dataset.spec;
-    if (spec) addSpecialization(spec);
-};
+    if (spec) {
+        addSpecialization(spec);
+    }
+});
 
-document.onclick = e => {
+document.addEventListener('click', function(e) {
     if (!elements.specializationInput.contains(e.target) && !elements.suggestions.contains(e.target)) {
         elements.suggestions.classList.add('hidden');
     }
-};
+});
 
 function addSpecialization(spec) {
     selectedSpecializations.push(spec);
@@ -265,7 +341,7 @@ function renderTags() {
     elements.tags.innerHTML = selectedSpecializations.map(s => 
         `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
             ${s}
-            <button type="button" class="ml-2 text-blue-600 hover:text-blue-800" onclick="removeSpecialization('${s}')">×</button>
+            <button type="button" class="ml-2 text-blue-600 hover:text-blue-800 font-bold" onclick="removeSpecialization('${s.replace(/'/g, "\\'")}')">×</button>
         </span>`
     ).join('');
     

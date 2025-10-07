@@ -6,17 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>@yield('title', 'Admin Dashboard - Online Clinic')</title>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
+
   <script src="https://cdn.tailwindcss.com"></script>
 
 </head>
-<body class="bg-gray-100 font-sans antialiased" x-data="{ sidebarOpen: false }">
-  @include('admin.sidenav')
+<body class="bg-gray-100 font-sans antialiased">
+    @include('layouts.header')
+    @include('admin.sidenav')
     <!-- Main -->
     <div class="flex-1 flex flex-col overflow-hidden">
-      
-      <!-- Topbar Header -->
-      @include('layouts.header')
-
       <!-- Content -->
       <main class="flex-1 overflow-y-auto p-6 bg-gray-50">
         <div class="max-w-7xl mx-auto">
@@ -24,6 +22,6 @@
         </div>
       </main>
     </div>
-  </div>
+
 </body>
 </html>

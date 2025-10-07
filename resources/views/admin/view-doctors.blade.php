@@ -2,7 +2,15 @@
 
 @section('content')
 <div class="container mx-auto px-6 py-6">
-    <h2 class="text-2xl font-bold mb-6">Doctors Information</h2>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Doctor Management</h1>
+        <div class="space-x-3">
+            <a href="" 
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                <i class="fas fa-calendar-alt mr-2"></i>View All Schedules
+            </a>
+        </div>
+    </div>
 
     @if(session('success'))
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
